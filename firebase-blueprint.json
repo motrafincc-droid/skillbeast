@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information and role.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string", "format": "uri" },
+        "role": { "type": "string", "enum": ["admin", "user", "suspended"] },
+        "lastLogin": { "type": "number", "description": "Timestamp of last login" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Sales order for a product.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "senderAccount": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "couponCode": { "type": "string" },
+        "discountAmount": { "type": "number" },
+        "finalPrice": { "type": "number" },
+        "productId": { "type": "string" },
+        "productTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "number", "description": "Timestamp of creation" }
+      },
+      "required": ["email", "name", "phone", "paymentMethod", "senderAccount", "transactionId", "finalPrice", "productId", "status", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product details and download information.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "price": { "type": "number" },
+        "downloadLink": { "type": "string", "format": "uri" },
+        "downloadsCount": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["title", "price", "downloadLink", "isActive"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Discount coupon for promotions.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "discountType": { "type": "string", "enum": ["percentage", "fixed"] },
+        "discountValue": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "expiresAt": { "type": "string" }
+      },
+      "required": ["code", "discountType", "discountValue", "isActive"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Landing page configuration.",
+      "type": "object",
+      "properties": {
+        "heroBadge": { "type": "string" },
+        "heroTitle1": { "type": "string" },
+        "heroTitleHighlight": { "type": "string" },
+        "youtubeLink": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "previewImages": { "type": "array", "items": { "type": "string" } },
+        "heroDescription": { "type": "string" },
+        "buttonText": { "type": "string" },
+        "feature1Title": { "type": "string" },
+        "feature1Desc": { "type": "string" },
+        "feature2Title": { "type": "string" },
+        "feature2Desc": { "type": "string" },
+        "feature3Title": { "type": "string" },
+        "feature3Desc": { "type": "string" },
+        "chatScreenshots": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Sales orders"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product data"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Promotion coupons"
+    },
+    "/settings/landingPage": {
+      "schema": "Settings",
+      "description": "Main landing page content"
+    }
+  }
+}

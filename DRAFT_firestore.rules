@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'motrafincc@gmail.com' && request.auth.token.email_verified == true
+      );
+    }
+
+    function isSuspended() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'suspended';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Users
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid is string &&
+               data.email is string &&
+               data.role in ['admin', 'user', 'suspended'] &&
+               data.lastLogin is number;
+      }
+
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().role == 'user';
+      allow update: if (isOwner(userId) && isValidUser(incoming()) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['lastLogin', 'displayName', 'photoURL'])) || isAdmin();
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      function isValidOrder(data) {
+        return data.email is string && data.email.size() <= 200 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.phone is string && data.phone.size() <= 20 &&
+               data.paymentMethod is string &&
+               data.senderAccount is string &&
+               data.transactionId is string &&
+               data.finalPrice is number &&
+               data.productId is string &&
+               data.status in ['pending', 'approved', 'rejected'] &&
+               data.createdAt is number;
+      }
+
+      allow get: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && !isSuspended() && resource.data.userId == request.auth.uid);
+      allow create: if !isSuspended() && isValidOrder(incoming()) && incoming().status == 'pending';
+      allow update: if isAdmin() || (
+        isSignedIn() && 
+        !isSuspended() &&
+        existing().userId == 'guest' && 
+        incoming().userId == request.auth.uid && 
+        incoming().diff(existing()).affectedKeys().hasOnly(['userId', 'email'])
+      );
+    }
+
+    // Products
+    match /products/{productId} {
+      function isValidProduct(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.price is number &&
+               data.downloadLink is string &&
+               data.isActive is bool;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow write: if isAdmin() && isValidProduct(incoming());
+      // Admin update for downloadsCount
+      allow update: if isAdmin() || (isSignedIn() && !isSuspended() && incoming().diff(existing()).affectedKeys().hasOnly(['downloadsCount']));
+    }
+
+    // Coupons
+    match /coupons/{couponId} {
+      function isValidCoupon(data) {
+        return data.code is string &&
+               data.discountType in ['percentage', 'fixed'] &&
+               data.discountValue is number &&
+               data.isActive is bool;
+      }
+
+      allow get: if true;
+      allow list: if true; // Needed to find coupon by code in client
+      allow write: if isAdmin() && isValidCoupon(incoming());
+    }
+
+    // Settings
+    match /settings/landingPage {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
